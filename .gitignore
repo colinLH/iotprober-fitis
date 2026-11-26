@@ -1,0 +1,63 @@
+# Excluded directories
+__pycache__/
+backup/
+drift_data/
+platform_data/*
+!platform_data/README.md
+qwen3_embedding_06b/
+Meta-Llama-3.1-8B-Instruct
+milvus_db/
+checkpoints/
+logs/
+.cache/
+.pytest_cache/
+
+# Runtime caches and state
+agent/query_db/
+graph/update/
+graph/hgt_log/
+graph/model/
+
+# Evaluation data and model artifacts (published on the HuggingFace dataset IoTProber/raw_dataset)
+evaluation/bench_100/
+evaluation/demo/
+evaluation/predict/
+evaluation/validation/
+evaluation/drift/CADE/*
+evaluation/unseen/*
+!evaluation/unseen/llama3/
+evaluation/unseen/llama3/*
+!evaluation/unseen/llama3/train_unseen.py
+!evaluation/unseen/llama3/recalibrate_gate_v2.py
+!evaluation/unseen/llama3/gen_real_novel_vendor_validation.py
+hgt_results/
+IoTProber.pdf
+
+# Large data files
+*.csv
+*.jsonl
+
+# Python
+*.pyc
+*.pyo
+
+# Runtime logs
+*.log
+*.out
+*.pid
+
+# Local client credentials
+config/deepseek.json
+config/glm.json
+config/llm_config.local.json
+config/llm_config.local.json.bak*
+/search_config.json
+config/*copy*.json
+
+# Local-only material
+FITI/
+artificat/
+AGENTS.md
+.devin/
+.claude/
+*.docx

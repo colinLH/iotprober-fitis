@@ -1,0 +1,8 @@
+{
+  "ip": "192.0.2.80",
+  "hw-products": "network camera",
+  "hw-vendors": "Example Optics",
+  "hw-info": "vendor: Example Optics | product: network camera",
+  "service-distribution": "RTSP-554,HTTP-80",
+  "http-bodys": "Example Optics camera management"
+}

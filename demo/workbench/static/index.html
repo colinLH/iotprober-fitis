@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>IoTProber · 设备识别工作台</title>
+  <link rel="icon" href="/static/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/workbench.css">
+  <script src="/static/workbench.js" defer></script>
+</head>
+<body>
+<aside class="rail">
+  <a class="brand" href="#intake"><span class="brandmark" aria-hidden="true">◉</span><span>IoTProber<small>设备识别工作台</small></span></a>
+  <nav aria-label="系统功能">
+    <span class="navlabel">WORKSPACE</span>
+    <a href="#intake" data-page="intake"><b>01</b>资产识别</a>
+    <a href="#stages" data-page="stages"><b>02</b>阶段证据</a>
+    <a href="#verdict" data-page="verdict"><b>03</b>最终判定</a>
+    <span class="navlabel secondary">REFERENCE</span>
+    <a href="#archive" data-page="archive"><b>↺</b>归档案例</a>
+    <a href="#runtime" data-page="runtime"><b>◇</b>连接与资源</a>
+  </nav>
+  <footer class="railfoot"><i></i> CPU 专用 · 单任务<br><small>LOOPBACK / READ-ONLY KB</small></footer>
+</aside>
+<main>
+  <div class="mast"><span>FITI <em>/</em> DEVICE INTELLIGENCE</span><span class="badge">知识库只读</span></div>
+  <div id="global-error" class="alert" role="alert" hidden></div>
+  <section id="page-intake" class="page">
+    <header><span class="kicker">IDENTIFICATION DESK</span><h1>设备识别<span class="dot">.</span></h1>
+      <p>从一个 IP 和一份观测指纹出发，沿证据追溯到设备类型与厂商。</p></header>
+    <form id="intake-form" class="sheet">
+      <div class="sheethead"><div><span class="kicker">INPUT</span><h2>提交一次观测</h2></div><span class="subtle">单 IP · IPv4 / IPv6</span></div>
+      <div id="unlock-pane" class="inset" hidden><label for="access-key">解锁实时识别 <small>每个浏览器会话一次</small></label>
+        <p>服务器是共享的。通过 SSH 执行 <code>cat ~/.cache/iotprober-workbench/live.key</code>，将工作台口令粘贴到此处。只看归档无需解锁。</p>
+        <input id="access-key" type="password" autocomplete="off" placeholder="工作台口令（不是 API Key）"><button id="unlock" type="button" class="textbtn">解锁工作台 →</button></div>
+      <label for="ip">设备 IP</label><input id="ip" name="ip" placeholder="例如 192.0.2.80" required maxlength="45" autocomplete="off" spellcheck="false">
+      <fieldset><legend>指纹来源</legend>
+        <div class="choice"><label><input type="radio" name="source" value="upload" checked> 上传指纹</label><label><input type="radio" name="source" value="censys"> 从 Censys 获取</label></div>
+        <div id="upload-pane" class="inset">
+          <label for="file">指纹文件 <small>JSON / CSV · UTF-8 · 最大 2 MiB</small></label>
+          <input id="file" type="file" name="file" accept=".json,.csv">
+          <p>支持项目指纹、Censys 主机记录和多行文件；只取与输入 IP 匹配的一条。单字段最多 16000 字符，长网页正文请先精简。</p>
+          <button type="button" id="use-example" class="textbtn">填入合成示例</button> <a href="/static/example.json" download>下载字段示例 ↓</a>
+        </div>
+        <div id="censys-pane" class="inset" hidden>
+          <p>仅从 Censys Platform 读取该 IP 已有的主机记录，不连接目标设备。</p>
+          <label for="pat">Censys PAT <small id="pat-hint"></small></label>
+          <input id="pat" name="pat" type="password" autocomplete="off" placeholder="仅本次使用，不保存">
+          <label for="org">Organization ID <small>可选</small></label><input id="org" name="org" autocomplete="off">
+          <label class="tick"><input id="censys-consent" type="checkbox">这是我获准查询的资产，同意使用 Censys 查询额度。</label>
+        </div>
+      </fieldset>
+      <label for="mode">识别模式</label>
+      <select id="mode" name="mode"><option value="local">快速本地 · Qwen 向量检索（仅候选）</option><option value="full">完整识别 · 全阶段 + 双路 LLM 判定</option></select>
+      <p id="mode-note" class="hint">仅使用 CPU 和本地知识库，不调用 LLM API，不判定厂商。</p>
+      <label id="llm-pane" class="tick" hidden><input id="llm-consent" type="checkbox">同意本次向配置的 LLM 服务发送查询指纹和检索证据（含生成缺失报告所需的库成员观测），可能产生费用。</label>
+      <div class="actions"><button type="submit" id="submit">开始识别 <span>→</span></button><a href="#archive">先看归档案例</a></div>
+      <div id="form-msg" role="status" class="hint"></div>
+    </form>
+  </section>
+  <section id="page-stages" class="page" hidden>
+    <header><span class="kicker">EVIDENCE TRACE</span><h1>阶段证据<span class="dot">.</span></h1><p>展开各阶段查看证据、分数和跳过原因。相似度、漂移分数与决策置信度不是同一指标。</p></header>
+    <div id="trace"></div>
+    <section class="sheet final-link"><div><span class="kicker">VERDICT</span><h2>本次最终判定</h2><p id="verdict-preview">尚无结果。</p></div><a href="#verdict">查看独立判定页 →</a></section>
+  </section>
+  <section id="page-verdict" class="page" hidden>
+    <header><span class="kicker">IDENTIFICATION REPORT</span><h1>最终判定<span class="dot">.</span></h1><p>类型和厂商分别展示。归档回放与本次实时推理始终区分标记。</p></header>
+    <div id="verdict"></div>
+  </section>
+  <section id="page-archive" class="page" hidden>
+    <header><span class="kicker">REFERENCE COLLECTION</span><h1>归档案例<span class="dot">.</span></h1><p>回放项目已保存的真实识别输出。不会重新推理、访问 Censys 或产生 API 费用。</p></header>
+    <div class="sheet"><label for="collection">记录范围</label>
+      <select id="collection"><option value="verified">演示精选 · 局部 Top-1 与最终类型均正确</option>
+        <option value="errors">误判复盘 · 最终类型与标签不同</option><option value="all">全部原始记录</option></select>
+      <p class="hint" id="collection-count" aria-live="polite"></p>
+      <label for="sample">选择观测记录</label><select id="sample"></select>
+      <p class="hint">精选是按已知结果筛出的例子，不代表准确率。无局部证据、自匹配或仅 Top-5 命中的记录不能入选；附档证据会标注来源。</p>
+      <button id="replay" type="button">回放此记录 →</button></div>
+  </section>
+  <section id="page-runtime" class="page" hidden>
+    <header><span class="kicker">OPERATING ENVELOPE</span><h1>连接与资源<span class="dot">.</span></h1><p>为共享服务器保留一条与现有 GPU 作业隔离的识别路径。</p></header>
+    <div class="sheet guide"><h2>从本地浏览器访问</h2>
+      <p>在本地电脑执行以下命令并保持终端打开。<code>H100</code> 使用已有的 SSH 跳板配置。</p>
+      <pre id="tunnel">ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 H100</pre><p>然后打开 <code id="local-url">http://127.0.0.1:8765</code>。若本地端口被占，只改第一个端口号。</p>
+      <hr><h2>运行边界</h2><p>服务仅监听回环地址。实时任务使用一个低优先级 CPU 子进程；GPU 对它不可见，最多同时运行一个任务，限时 30 分钟。不会写回 Neo4j、改动已有任务或共享预测文件。</p>
+      <p>完整模式调用已配置的决策与匹配 API，CPU 加载 Llama 8B 可能较慢。此入口不启用 Tavily 扩展搜索。指纹、上传文件和临时检索缓存不进入共享训练集；内存中只保留最近 12 份报告，重启清空。</p>
+      <p id="censys-status"></p></div>
+  </section>
+  <section id="runbar" class="runbar" aria-live="polite" hidden><span id="run-status"></span><a href="#stages">查看阶段 →</a></section>
+</main>
+</body></html>

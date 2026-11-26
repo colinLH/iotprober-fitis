@@ -1,0 +1,53 @@
+# Full-Pipeline Evaluation
+
+The fullflow evaluator runs the complete IoTProber pipeline:
+
+```text
+decomposition -> local retrieval -> community retrieval -> reasoning path
+              -> unseen/drift checks -> Gemini + Claude decision
+```
+
+`run_fullflow_demo.py` uses each device type's fixed-seed random
+`validation_cases.json` by default. The three post-selected UI examples in
+`cases.json` are used only when `--showcase-only` is explicitly supplied.
+
+Each new `results.json` retains successful and failed predictions together with
+the local, community, and reasoning evidence. A new `showcase.json` contains at most
+three records with both a verified local top-1 and a correct final type; an empty
+showcase is valid. Evaluation always reads the unfiltered results. Writes are atomic and
+long runs resume only records created by the current pipeline schema.
+New outputs go to `demo/runs/<schema>/<bits>bit/` by default. The original
+`demo/fullflow/` is a read-only replay source, not an output directory.
+
+A case is `completed` only when it has both a decision and current-schema
+records for all three retrieval levels. The evaluator reports completion rate,
+accuracy among completed cases, and end-to-end accuracy over every selected
+case; unavailable evidence therefore cannot disappear from a metric denominator.
+
+## Run
+
+```bash
+EL=/root/anaconda3/envs/elastic_slm/bin/python
+
+# Refresh the complete random validation material without changing curated UI cases.
+$EL demo/select_demo_data.py --materialize-validation
+
+# Evaluate all 11 types. Compatible completed IPs are resumed.
+CUDA_VISIBLE_DEVICES=0 $EL demo/run_fullflow_demo.py --no-graph-update
+
+# Explicitly run only the curated UI examples.
+CUDA_VISIBLE_DEVICES=0 $EL demo/run_fullflow_demo.py --showcase-only --no-graph-update
+
+# Discard generated retrieval/prediction caches for the requested types.
+CUDA_VISIBLE_DEVICES=0 $EL demo/run_fullflow_demo.py --fresh --types CAMERA NAS --no-graph-update
+
+# Override the default DEEPSEEK relay model used for cluster matching.
+CUDA_VISIBLE_DEVICES=0 $EL demo/run_fullflow_demo.py --retrieval-llm OPENAI --types CAMERA --no-graph-update
+
+# Compute final accuracy, per-layer retrieval accuracy/availability, Recall@K,
+# self-match/range integrity checks, high-confidence errors, and 10-bin ECE.
+$EL demo/evaluate_fullflow.py
+```
+
+The full run requires the configured LLM endpoints, the unseen adapter, the
+drift artifacts, and the local/community index data.
